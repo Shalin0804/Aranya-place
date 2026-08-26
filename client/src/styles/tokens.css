@@ -1,0 +1,82 @@
+/* ============================================================
+   Aranya Palace Resort & Spa — Design Tokens
+
+   Direction: a 1920s haveli, restored, set in an orchard outside
+   Ahmedabad. Warm and material rather than glossy — the palette
+   comes from the building itself (limewashed walls, teak, brass
+   fittings, the mango canopy) not from a generic "luxury" preset.
+   ============================================================ */
+
+:root {
+  /* ---- Color: named for what they actually are on the property ---- */
+  --color-limewash: #F7F3EC;       /* primary background - the haveli's washed walls */
+  --color-limewash-deep: #EFE8D9;  /* card / section backgrounds, one layer down */
+  --color-charcoal: #22201B;       /* primary text, dark sections - old teak beams */
+  --color-charcoal-soft: #3A362E;  /* secondary dark surface */
+  --color-brass: #A97C43;          /* primary accent - door fittings & signage */
+  --color-brass-light: #C89B62;    /* brass on dark backgrounds */
+  --color-forest: #3E4B3E;         /* secondary accent - the mango canopy ("Aranya") */
+  --color-forest-deep: #2A332A;
+  --color-stone: #857E70;          /* muted secondary text */
+  --color-stone-light: #B8AF9E;    /* borders, dividers on light bg */
+  --color-white: #FFFEFB;
+  --color-error: #A23E2E;
+  --color-success: #3E5C3E;
+
+  /* ---- Typography ----
+     Display: Fraunces — a soft-serif with real weight range, warmer
+     and less "editorial-fashion" than Playfair; carries the haveli's
+     handmade quality at large sizes.
+     Body: Inter — quiet, legible, gets out of the way.
+     Utility: Inter, uppercase, tracked out — used for eyebrows/labels. */
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 3.75rem;
+  --text-6xl: 4.75rem;
+
+  /* ---- Spacing scale ---- */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.875rem;
+  --space-md: 1.5rem;
+  --space-lg: 2.5rem;
+  --space-xl: 4rem;
+  --space-2xl: 6rem;
+  --space-3xl: 9rem;
+
+  /* ---- Layout ---- */
+  --content-max: 1280px;
+  --content-pad: clamp(1.25rem, 4vw, 3rem);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 1px 3px rgba(34, 32, 27, 0.08);
+  --shadow-md: 0 8px 24px rgba(34, 32, 27, 0.10);
+  --shadow-lg: 0 20px 48px rgba(34, 32, 27, 0.16);
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 200ms;
+  --duration-base: 420ms;
+  --duration-slow: 900ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
