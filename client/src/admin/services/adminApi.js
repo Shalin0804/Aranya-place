@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 /* =========================================================
    COMMON REQUEST
@@ -27,7 +27,7 @@ async function apiRequest(endpoint, options = {}) {
     console.error("API connection error:", error);
 
     throw new Error(
-      "Failed to fetch. Make sure the backend server is running on http://localhost:5000."
+      `Failed to fetch. Make sure the backend server is running on ${API_BASE_URL}.`
     );
   }
 
