@@ -119,7 +119,6 @@ export const createGalleryImage =
 
     const {
       category,
-      image_url,
       caption,
       sort_order,
       is_featured,
@@ -146,12 +145,15 @@ export const createGalleryImage =
     }
 
 
-    if (!image_url) {
+    if (!req.file) {
       throw new ApiError(
         400,
-        'Image URL is required.'
+        'Image file is required.'
       );
     }
+
+    const image_url =
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
 
     const [result] =
@@ -207,7 +209,6 @@ export const updateGalleryImage =
 
     const {
       category,
-      image_url,
       caption,
       sort_order,
       is_featured,
@@ -217,7 +218,7 @@ export const updateGalleryImage =
     const [[existing]] =
       await pool.query(
         `
-        SELECT id
+        SELECT id, image_url
         FROM gallery
         WHERE id = ?
         `,
@@ -231,6 +232,11 @@ export const updateGalleryImage =
         'Gallery image not found.'
       );
     }
+
+    const image_url =
+      req.file
+        ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+        : existing.image_url;
 
 
     await pool.query(

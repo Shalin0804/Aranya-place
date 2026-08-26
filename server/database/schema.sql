@@ -188,7 +188,7 @@ DROP TABLE IF EXISTS gallery;
 CREATE TABLE gallery (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category ENUM('hotel','room','restaurant','pool','facility','event') NOT NULL,
-  image_url VARCHAR(500) NOT NULL,
+  image_url LONGTEXT NOT NULL,
   caption VARCHAR(255),
   sort_order INT NOT NULL DEFAULT 0,
   is_featured TINYINT(1) NOT NULL DEFAULT 0,

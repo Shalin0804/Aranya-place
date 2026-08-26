@@ -13,10 +13,11 @@ const CATEGORIES = [
 export default function AdminGallery() {
   const [images, setImages] = useState([]);
   const [form, setForm] = useState({
-    image_url: '',
     caption: '',
     category: CATEGORIES[0],
   });
+  const [file, setFile] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadGallery();
@@ -34,18 +35,33 @@ export default function AdminGallery() {
   async function submit(e) {
     e.preventDefault();
 
+    if (!file) {
+      alert('Please choose an image to upload.');
+      return;
+    }
+
     try {
-      await adminApi.createGallery(form);
+      setSaving(true);
+
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('caption', form.caption);
+      formData.append('category', form.category);
+
+      await adminApi.createGallery(formData);
 
       setForm({
-        image_url: '',
         caption: '',
         category: CATEGORIES[0],
       });
+      setFile(null);
+      e.target.reset();
 
       await loadGallery();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -80,13 +96,10 @@ export default function AdminGallery() {
         >
 
           <input
-            placeholder="Image URL"
-            value={form.image_url}
+            type="file"
+            accept="image/*"
             onChange={(e) =>
-              setForm({
-                ...form,
-                image_url: e.target.value,
-              })
+              setFile(e.target.files?.[0] || null)
             }
             required
           />
@@ -118,8 +131,8 @@ export default function AdminGallery() {
             ))}
           </select>
 
-          <button className="admin-primary-button">
-            Add Image
+          <button className="admin-primary-button" disabled={saving}>
+            {saving ? 'Uploading...' : 'Add Image'}
           </button>
 
         </form>
