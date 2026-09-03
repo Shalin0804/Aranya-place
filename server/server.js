@@ -48,11 +48,21 @@ dotenv.config();
 
 const app = express();
 
+// Render sits behind a proxy — trust it so req.protocol reflects the
+// original https scheme (needed to build correct absolute image URLs).
+app.set('trust proxy', 1);
+
 // =====================================================
 // SECURITY
 // =====================================================
 
-app.use(helmet());
+app.use(
+  helmet({
+    // Gallery images are fetched cross-origin by the Vercel-hosted client's
+    // <img> tags; helmet's default same-origin policy would block that.
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 
 // =====================================================
 // CORS

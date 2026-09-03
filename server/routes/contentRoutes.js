@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSettings, listActiveOffers, listGallery } from '../controllers/contentController.js';
+import { getSettings, listActiveOffers, listGallery, getGalleryImage } from '../controllers/contentController.js';
 
 const settingsRouter = Router();
 settingsRouter.get('/', getSettings);
@@ -9,5 +9,6 @@ offersRouter.get('/', listActiveOffers);
 
 const galleryRouter = Router();
 galleryRouter.get('/', listGallery);
+galleryRouter.get('/:id/image', getGalleryImage);
 
 export { settingsRouter, offersRouter, galleryRouter };

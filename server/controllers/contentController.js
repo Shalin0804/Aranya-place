@@ -1,5 +1,6 @@
 import { pool } from '../config/db.js';
-import { asyncHandler } from '../utils/apiError.js';
+import { asyncHandler, ApiError } from '../utils/apiError.js';
+import { toPublicImageUrl } from '../utils/imageUrl.js';
 
 /** GET /api/settings — public hotel info used across the site (name, contact, policies, etc.) */
 export const getSettings = asyncHandler(async (req, res) => {
@@ -26,5 +27,25 @@ export const listGallery = asyncHandler(async (req, res) => {
     ? { sql: 'SELECT * FROM gallery WHERE category = ? ORDER BY sort_order', params: [category] }
     : { sql: 'SELECT * FROM gallery ORDER BY sort_order', params: [] };
   const [images] = await pool.query(query.sql, query.params);
-  res.json({ success: true, data: images });
+  res.json({
+    success: true,
+    data: images.map((img) => ({ ...img, image_url: toPublicImageUrl(req, img.id, img.image_url) })),
+  });
+});
+
+/** GET /api/gallery/:id/image — streams the actual image bytes, cacheable by the browser/CDN */
+export const getGalleryImage = asyncHandler(async (req, res) => {
+  const [[image]] = await pool.query('SELECT image_url FROM gallery WHERE id = ?', [req.params.id]);
+  if (!image) throw new ApiError(404, 'Image not found.');
+
+  const match = /^data:([^;]+);base64,(.+)$/s.exec(image.image_url);
+  if (!match) {
+    // Not a stored upload (e.g. a seeded external URL) — send the browser straight there.
+    return res.redirect(image.image_url);
+  }
+
+  const [, mimeType, base64Data] = match;
+  res.set('Content-Type', mimeType);
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.send(Buffer.from(base64Data, 'base64'));
 });

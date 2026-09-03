@@ -1,5 +1,6 @@
 import { pool } from '../config/db.js';
 import { asyncHandler, ApiError } from '../utils/apiError.js';
+import { toPublicImageUrl } from '../utils/imageUrl.js';
 
 
 /* =========================================================
@@ -72,7 +73,10 @@ export const getAdminGallery = asyncHandler(
     res.json({
       success: true,
       data: {
-        gallery,
+        gallery: gallery.map((img) => ({
+          ...img,
+          image_url: toPublicImageUrl(req, img.id, img.image_url),
+        })),
       },
     });
   }
@@ -105,7 +109,7 @@ export const getAdminGalleryItem =
 
     res.json({
       success: true,
-      data: image,
+      data: { ...image, image_url: toPublicImageUrl(req, image.id, image.image_url) },
     });
   });
 
@@ -193,7 +197,7 @@ export const createGalleryImage =
     res.status(201).json({
       success: true,
       message: 'Gallery image added successfully.',
-      data: image,
+      data: { ...image, image_url: toPublicImageUrl(req, image.id, image.image_url) },
     });
   });
 
@@ -275,7 +279,7 @@ export const updateGalleryImage =
     res.json({
       success: true,
       message: 'Gallery image updated successfully.',
-      data: image,
+      data: { ...image, image_url: toPublicImageUrl(req, image.id, image.image_url) },
     });
   });
 
