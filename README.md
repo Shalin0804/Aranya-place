@@ -2,6 +2,8 @@
 
 Live: https://aranya-place.vercel.app (client on Vercel, API on Render, database on TiDB Cloud).
 
+**Setup, deployment and admin guide: [INSTRUCTIONS.md](INSTRUCTIONS.md)**
+
 ## Features
 - **Account-only booking**: customers sign up or sign in before confirming (no guest checkout). Clicking Book Now while signed out goes to sign-in and returns to the same room, dates, guests and room count afterwards. Forgot-password by email. Every new booking is tied to the customer's account; older guest bookings stay in the database for history.
 - **Availability engine**: real inventory per room type; concurrency-safe booking (tested: 3 simultaneous guests for the last 2 rooms → exactly 2 succeed).
