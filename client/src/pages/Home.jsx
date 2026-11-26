@@ -22,8 +22,8 @@ const AMENITIES = [
 ];
 
 const ATTRACTIONS = [
-  { name: 'Sabarmati Riverfront', distance: '38 km', image: 'https://images.unsplash.com/photo-1609948543331-e2fb87e8c8c1?w=800' },
-  { name: 'Adalaj Stepwell', distance: '25 km', image: 'https://images.unsplash.com/photo-1600100397608-f0d2a3427633?w=800' },
+  { name: 'Sabarmati Riverfront', distance: '38 km', image: '/images/sabarmati-riverfront.jpg' },
+  { name: 'Adalaj Stepwell', distance: '25 km', image: '/images/adalaj-stepwell.jpg', credit: 'Photo: Tejal Acharya, CC BY-SA 3.0', creditUrl: 'https://commons.wikimedia.org/wiki/File:Adalaj_Vav_01.jpg' },
   { name: 'Sanand Handicraft Village', distance: '12 km', image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800' },
 ];
 
@@ -106,7 +106,7 @@ export default function Home() {
         <div className="container about-grid">
           <div className="about-media">
             <img src="https://images.unsplash.com/photo-1596436889106-be35e843f974?w=900" alt="The restored haveli facade" />
-            <img src="https://images.unsplash.com/photo-1601565415267-724dbe9c4747?w=600" alt="A quiet reading corner" className="about-media-small" />
+            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600" alt="Sunrise yoga on the terrace" className="about-media-small" loading="lazy" />
           </div>
           <div className="about-copy">
             <p className="eyebrow">About the hotel</p>
@@ -241,6 +241,7 @@ export default function Home() {
                 <div className="attraction-info">
                   <h3>{a.name}</h3>
                   <span><HiOutlineLocationMarker size={14} /> {a.distance} away</span>
+                  {a.credit && <a className="attraction-credit" href={a.creditUrl} target="_blank" rel="noopener noreferrer">{a.credit}</a>}
                 </div>
               </div>
             ))}

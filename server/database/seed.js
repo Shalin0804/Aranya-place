@@ -34,7 +34,7 @@ const ROOM_TYPES = [
     base_price: 11800, max_guests: 3, bed_type: 'King bed', size_sqft: 480, sort_order: 3, roomCount: 5,
     amenities: ['Free Wi-Fi', 'Air conditioning', 'Heritage architecture', 'Writing desk', 'Minibar', 'Nespresso machine', 'Turndown service'],
     images: [
-      'https://images.unsplash.com/photo-1590073242678-70ee3fc28f8e?w=1200',
+      'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1200',
       'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1200',
       'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1200',
     ],

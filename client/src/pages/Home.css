@@ -289,6 +289,12 @@
   margin-top: 0.3rem;
   color: rgba(255,255,255,0.8);
 }
+.attraction-credit {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  color: rgba(255,255,255,0.6);
+}
 
 /* ---------- Closing CTA ---------- */
 .hero-cta {
