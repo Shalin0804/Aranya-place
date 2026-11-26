@@ -5,11 +5,11 @@ import {
   updateAdminSettings,
 } from '../controllers/adminSettingsController.js';
 
-import { requireAdminAuth } from '../middleware/auth.js';
+import { requireAdminAuth, requirePermission } from '../middleware/auth.js';
 
 const router = Router();
 
-router.use(requireAdminAuth);
+router.use(requireAdminAuth, requirePermission('settings.manage'));
 
 router.get('/', getAdminSettings);
 router.put('/', updateAdminSettings);

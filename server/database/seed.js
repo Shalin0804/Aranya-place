@@ -98,6 +98,12 @@ async function seed() {
   console.log('Seeding database...');
   const conn = await pool.getConnection();
   try {
+    // The seed wipes every table. Refuse to touch a database that already
+    // holds bookings unless explicitly forced.
+    const [[{ n }]] = await conn.query('SELECT COUNT(*) AS n FROM bookings');
+    if (n > 0 && !process.argv.includes('--force')) {
+      throw new Error(`Refusing to seed: database has ${n} bookings and seeding deletes everything. Re-run with --force only on a disposable database.`);
+    }
     await conn.query('SET FOREIGN_KEY_CHECKS = 0');
     await conn.query('TRUNCATE TABLE payments');
     await conn.query('TRUNCATE TABLE bookings');

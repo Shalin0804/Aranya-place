@@ -4,15 +4,22 @@ export default function AdminSidebar() {
   const navigate = useNavigate();
 
   const links = [
-    { path: '/admin', icon: '📊', label: 'Dashboard' },
-    { path: '/admin/bookings', icon: '📅', label: 'Bookings' },
-    { path: '/admin/rooms', icon: '🛏️', label: 'Rooms' },
-    { path: '/admin/customers', icon: '👥', label: 'Customers' },
-    { path: '/admin/reviews', icon: '⭐', label: 'Reviews' },
-    { path: '/admin/offers', icon: '🏷️', label: 'Offers' },
-    { path: '/admin/gallery', icon: '🖼️', label: 'Gallery' },
-    { path: '/admin/settings', icon: '⚙️', label: 'Settings' },
+    { path: '/admin', icon: '📊', label: 'Dashboard', perm: 'dashboard.view' },
+    { path: '/admin/bookings', icon: '📅', label: 'Bookings', perm: 'bookings.view' },
+    { path: '/admin/rooms', icon: '🛏️', label: 'Rooms', perm: 'rooms.view' },
+    { path: '/admin/customers', icon: '👥', label: 'Customers', perm: 'customers.view' },
+    { path: '/admin/reviews', icon: '⭐', label: 'Reviews', perm: 'content.manage' },
+    { path: '/admin/offers', icon: '🏷️', label: 'Offers', perm: 'content.manage' },
+    { path: '/admin/gallery', icon: '🖼️', label: 'Gallery', perm: 'content.manage' },
+    { path: '/admin/settings', icon: '⚙️', label: 'Settings', perm: 'settings.manage' },
   ];
+
+  // Sessions saved before permissions existed have none listed; show all
+  // links then (the server still enforces every permission).
+  const { permissions } = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  const visibleLinks = permissions
+    ? links.filter((link) => permissions.includes(link.perm))
+    : links;
 
   function logout() {
     localStorage.removeItem('adminToken');
@@ -31,7 +38,7 @@ export default function AdminSidebar() {
       </div>
 
       <nav className="admin-nav">
-        {links.map((link) => (
+        {visibleLinks.map((link) => (
           <NavLink
             key={link.path}
             to={link.path}

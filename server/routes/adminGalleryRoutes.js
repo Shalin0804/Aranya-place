@@ -8,7 +8,7 @@ import {
   deleteGalleryImage,
 } from '../controllers/adminGalleryController.js';
 
-import { requireAdminAuth } from '../middleware/auth.js';
+import { requireAdminAuth, requirePermission } from '../middleware/auth.js';
 import { ApiError } from '../utils/apiError.js';
 
 const router = Router();
@@ -34,7 +34,7 @@ function handleUpload(req, res, next) {
   });
 }
 
-router.use(requireAdminAuth);
+router.use(requireAdminAuth, requirePermission('content.manage'));
 
 router.get('/', getAdminGallery);
 router.post('/', handleUpload, createGalleryImage);

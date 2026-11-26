@@ -13,53 +13,27 @@ import {
   deleteRoomType,
 } from "../controllers/adminRoomController.js";
 
-import { requireAdminAuth } from "../middleware/auth.js";
+import { requireAdminAuth, requirePermission } from "../middleware/auth.js";
 
 const router = Router();
 
-/* =========================================================
-   ADMIN AUTHENTICATION
-   All routes below require admin authentication
-========================================================= */
-
 router.use(requireAdminAuth);
 
-/* =========================================================
-   ROOM TYPES
-========================================================= */
+const view = requirePermission("rooms.view");
+const manage = requirePermission("rooms.manage");
 
-// Get all room types
-router.get("/room-types", getRoomTypesForAdmin);
+/* ROOM TYPES */
+router.get("/room-types", view, getRoomTypesForAdmin);
+router.post("/room-types", manage, createRoomType);
+router.put("/room-types/:id", manage, updateRoomType);
+router.delete("/room-types/:id", manage, deleteRoomType);
 
-// Create a room type
-router.post("/room-types", createRoomType);
-
-// Update a room type
-router.put("/room-types/:id", updateRoomType);
-
-// Delete a room type
-router.delete("/room-types/:id", deleteRoomType);
-
-/* =========================================================
-   PHYSICAL ROOMS
-========================================================= */
-
-// Get all rooms
-router.get("/", getAdminRooms);
-
-// Get single room by ID
-router.get("/:id", getAdminRoomById);
-
-// Create new room
-router.post("/", createRoom);
-
-// Update complete room
-router.put("/:id", updateRoom);
-
-// Update room status
-router.put("/:id/status", updateRoomStatus);
-
-// Delete room
-router.delete("/:id", deleteRoom);
+/* PHYSICAL ROOMS */
+router.get("/", view, getAdminRooms);
+router.get("/:id", view, getAdminRoomById);
+router.post("/", manage, createRoom);
+router.put("/:id", manage, updateRoom);
+router.put("/:id/status", requirePermission("rooms.status"), updateRoomStatus);
+router.delete("/:id", manage, deleteRoom);
 
 export default router;

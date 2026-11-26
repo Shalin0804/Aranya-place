@@ -9,11 +9,11 @@ import {
   updateOfferStatus,
 } from '../controllers/adminOfferController.js';
 
-import { requireAdminAuth } from '../middleware/auth.js';
+import { requireAdminAuth, requirePermission } from '../middleware/auth.js';
 
 const router = Router();
 
-router.use(requireAdminAuth);
+router.use(requireAdminAuth, requirePermission('content.manage'));
 
 router.get('/', getAdminOffers);
 

@@ -6,14 +6,14 @@ import {
   updateCustomerStatus,
 } from '../controllers/adminCustomerController.js';
 
-import { requireAdminAuth } from '../middleware/auth.js';
+import { requireAdminAuth, requirePermission } from '../middleware/auth.js';
 
 const router = Router();
 
 router.use(requireAdminAuth);
 
-router.get('/', getAdminCustomers);
-router.get('/:id', getAdminCustomerById);
-router.put('/:id/status', updateCustomerStatus);
+router.get('/', requirePermission('customers.view'), getAdminCustomers);
+router.get('/:id', requirePermission('customers.view'), getAdminCustomerById);
+router.put('/:id/status', requirePermission('customers.manage'), updateCustomerStatus);
 
 export default router;

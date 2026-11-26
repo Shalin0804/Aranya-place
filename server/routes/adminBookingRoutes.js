@@ -8,44 +8,16 @@ import {
   cancelAdminBooking,
 } from '../controllers/adminBookingController.js';
 
-import { requireAdminAuth } from '../middleware/auth.js';
+import { requireAdminAuth, requirePermission } from '../middleware/auth.js';
 
 const router = Router();
 
-/*
-|--------------------------------------------------------------------------
-| Admin Booking Routes
-|--------------------------------------------------------------------------
-*/
+router.use(requireAdminAuth);
 
-router.get(
-  '/',
-  requireAdminAuth,
-  getAdminBookings
-);
-
-router.get(
-  '/:id',
-  requireAdminAuth,
-  getAdminBookingById
-);
-
-router.put(
-  '/:id/status',
-  requireAdminAuth,
-  updateBookingStatus
-);
-
-router.put(
-  '/:id/payment-status',
-  requireAdminAuth,
-  updatePaymentStatus
-);
-
-router.put(
-  '/:id/cancel',
-  requireAdminAuth,
-  cancelAdminBooking
-);
+router.get('/', requirePermission('bookings.view'), getAdminBookings);
+router.get('/:id', requirePermission('bookings.view'), getAdminBookingById);
+router.put('/:id/status', requirePermission('bookings.manage'), updateBookingStatus);
+router.put('/:id/payment-status', requirePermission('payments.manage'), updatePaymentStatus);
+router.put('/:id/cancel', requirePermission('bookings.manage'), cancelAdminBooking);
 
 export default router;

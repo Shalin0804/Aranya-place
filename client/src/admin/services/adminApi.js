@@ -161,7 +161,7 @@ export async function updatePaymentStatus(
     {
       method: "PUT",
       body: JSON.stringify({
-        payment_status: paymentStatus,
+        paymentStatus,
       }),
     }
   );

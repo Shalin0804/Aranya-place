@@ -1,6 +1,9 @@
 -- ============================================================
 -- Aranya Palace Resort & Spa — Database Schema
 -- MySQL 8.0
+-- FRESH INSTALL ONLY: this file DROPs every table. Never run it against
+-- the live database. Schema changes go in database/migrations/ and are
+-- applied with `npm run migrate`, which is safe on existing data.
 -- ============================================================
 
 SET NAMES utf8mb4;

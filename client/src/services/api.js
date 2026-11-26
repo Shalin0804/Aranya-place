@@ -37,7 +37,8 @@ export const roomTypesApi = {
 export const bookingsApi = {
   searchAvailability: (params) => request(api.get('/bookings/availability', { params })),
   create: (payload) => request(api.post('/bookings', payload)),
-  byRef: (ref) => request(api.get(`/bookings/ref/${ref}`)),
+  byRef: (ref, token) => request(api.get(`/bookings/ref/${ref}`, { params: { token } })),
+  cancelByRef: (ref, token) => request(api.put(`/bookings/ref/${ref}/cancel`, { token })),
   mine: () => request(api.get('/bookings/me')),
   cancel: (id) => request(api.put(`/bookings/${id}/cancel`)),
 };

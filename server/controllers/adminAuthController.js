@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { pool } from '../config/db.js';
 import { ApiError, asyncHandler } from '../utils/apiError.js';
 import { signAdminToken } from '../utils/jwt.js';
+import { permissionsFor } from '../middleware/auth.js';
 
 const ADMIN_FIELDS = `
   id,
@@ -51,7 +52,7 @@ export const adminLogin = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      admin: safeAdmin,
+      admin: { ...safeAdmin, permissions: permissionsFor(safeAdmin.role) },
       token,
     },
   });
@@ -73,6 +74,6 @@ export const getAdminProfile = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: admin,
+    data: { ...admin, permissions: permissionsFor(admin.role) },
   });
 });

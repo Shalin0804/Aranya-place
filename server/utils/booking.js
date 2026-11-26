@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { pool } from '../config/db.js';
 import { ApiError } from './apiError.js';
 
@@ -56,9 +57,28 @@ export function generateBookingRef() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let suffix = '';
   for (let i = 0; i < 6; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
+    suffix += chars[crypto.randomInt(chars.length)];
   }
   return `HTL-${year}-${suffix}`;
+}
+
+/** Secret handed only to the guest who made the booking (URL + email). */
+export function generateAccessToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+/** A booking can be cancelled by the guest only before the check-in date. */
+export function assertGuestCancellable(booking) {
+  if (['Cancelled', 'Checked In', 'Checked Out', 'Completed'].includes(booking.status)) {
+    throw new ApiError(400, `This booking is already ${booking.status.toLowerCase()} and cannot be cancelled.`);
+  }
+  // mysql2 returns DATE columns as local-midnight Dates; compare local
+  // calendar days (toISOString would shift the date in IST).
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const checkIn = booking.check_in instanceof Date ? ymd(booking.check_in) : String(booking.check_in).slice(0, 10);
+  if (checkIn <= ymd(new Date())) {
+    throw new ApiError(400, 'Bookings can only be cancelled online before the check-in date. Please contact the front desk.');
+  }
 }
 
 export async function findActiveOffer(offerId, roomTypeId, nights, conn = pool) {

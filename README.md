@@ -46,7 +46,9 @@ light animation in the hero.
 
 ## Running it locally
 
-Requires Node 18+ and a local MySQL 8 server.
+Requires Node 18+ and MySQL 8 or TiDB Cloud (set `DB_PORT=4000`, `DB_SSL=true`).
+
+**Existing / live database:** never run `schema.sql` or `seed` — just `npm run migrate`.
 
 ### 1. Backend
 
@@ -59,8 +61,9 @@ mysql -u root -p -e "CREATE DATABASE aranya_resort CHARACTER SET utf8mb4;"
 mysql -u root -p -e "CREATE USER 'aranya_app'@'localhost' IDENTIFIED BY 'yourpassword';"
 mysql -u root -p -e "GRANT ALL ON aranya_resort.* TO 'aranya_app'@'localhost';"
 
-mysql -u aranya_app -p aranya_resort < database/schema.sql
-npm run seed                # loads demo data, prints a demo login at the end
+mysql -u aranya_app -p aranya_resort < database/schema.sql   # FRESH database only — drops all tables
+npm run migrate             # applies database/migrations/*.sql (safe on live data, re-runnable)
+npm run seed                # demo data; refuses if bookings exist (wipes everything with --force)
 npm run dev                 # API on http://localhost:5000
 ```
 

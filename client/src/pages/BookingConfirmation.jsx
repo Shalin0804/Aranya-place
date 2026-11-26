@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { HiCheckCircle, HiOutlinePrinter, HiOutlineDownload, HiOutlineMail } from 'react-icons/hi';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { HiCheckCircle, HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
 import { bookingsApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -8,17 +8,19 @@ import './BookingConfirmation.css';
 
 export default function BookingConfirmation() {
   const { bookingRef } = useParams();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
   const { showToast } = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    bookingsApi.byRef(bookingRef)
+    bookingsApi.byRef(bookingRef, token)
       .then(setBooking)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [bookingRef]);
+  }, [bookingRef, token]);
 
   const handleDownload = () => {
     if (!booking) return;
@@ -45,9 +47,18 @@ export default function BookingConfirmation() {
     URL.revokeObjectURL(url);
   };
 
-  const handleEmail = () => {
-    showToast(`Confirmation sent to ${booking.guest_email}`);
+  const handleCancel = async () => {
+    if (!window.confirm('Cancel this booking? This cannot be undone.')) return;
+    try {
+      await bookingsApi.cancelByRef(bookingRef, token);
+      setBooking({ ...booking, status: 'Cancelled' });
+      showToast('Your booking has been cancelled.');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
   };
+
+  const cancellable = ['Pending', 'Confirmed'].includes(booking?.status);
 
   if (loading) return <div className="container confirmation-loading"><div className="skeleton" style={{ height: 400 }} /></div>;
 
@@ -67,8 +78,8 @@ export default function BookingConfirmation() {
         <div className="confirmation-card">
           <div className="confirmation-head no-print">
             <HiCheckCircle size={48} className="confirmation-icon" />
-            <h1 className="text-2xl">Booking Confirmed</h1>
-            <p>A confirmation has been sent to {booking.guest_email}.</p>
+            <h1 className="text-2xl">{booking.status === 'Cancelled' ? 'Booking Cancelled' : 'Booking Confirmed'}</h1>
+            <p>Bookmark this page: it is your private link to view or cancel this booking.</p>
           </div>
 
           <div className="confirmation-ref">
@@ -95,7 +106,9 @@ export default function BookingConfirmation() {
           <div className="confirmation-actions no-print">
             <button className="btn btn-outline" onClick={() => window.print()}><HiOutlinePrinter size={16} /> Print</button>
             <button className="btn btn-outline" onClick={handleDownload}><HiOutlineDownload size={16} /> Download</button>
-            <button className="btn btn-outline" onClick={handleEmail}><HiOutlineMail size={16} /> Email Confirmation</button>
+            {cancellable && (
+              <button className="btn btn-outline" onClick={handleCancel}>Cancel Booking</button>
+            )}
           </div>
 
           <div className="confirmation-footer no-print">

@@ -5,6 +5,8 @@ import {
   validateDateRange,
   getAvailableRoomCount,
   generateBookingRef,
+  generateAccessToken,
+  assertGuestCancellable,
   findActiveOffer,
 } from '../utils/booking.js';
 
@@ -74,17 +76,19 @@ export const createBooking = asyncHandler(async (req, res) => {
       bookingRef = generateBookingRef();
     }
 
+    const accessToken = generateAccessToken();
     const [result] = await conn.query(
       `INSERT INTO bookings
         (booking_ref, customer_id, guest_name, guest_email, guest_phone, room_type_id,
          check_in, check_out, nights, num_rooms, adults, children, special_requests,
          room_price, subtotal, tax_amount, discount_amount, total_amount, offer_id,
-         status, payment_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending')`,
+         status, payment_status, access_token)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending', ?)`,
       [
         bookingRef, req.customer?.id || null, guestName.trim(), guestEmail.toLowerCase(), guestPhone,
         roomTypeId, checkIn, checkOut, nights, rooms, Number(adults) || 1, Number(children) || 0,
         specialRequests || null, roomPrice, subtotal, taxAmount, discountAmount, totalAmount, appliedOfferId,
+        accessToken,
       ]
     );
 
@@ -114,16 +118,40 @@ export const createBooking = asyncHandler(async (req, res) => {
   }
 });
 
-/** GET /api/bookings/ref/:bookingRef — public lookup for the confirmation page */
-export const getBookingByRef = asyncHandler(async (req, res) => {
+/**
+ * Loads a booking by reference for its guest: either the secret access token
+ * issued at booking time (?token= / body.token) or the owning logged-in
+ * customer. Anything else gets the same 404, so references can't be probed.
+ */
+async function findGuestBooking(req) {
+  const token = req.query.token || req.body?.token;
   const [[booking]] = await pool.query(
     `SELECT b.*, rt.name AS room_type_name, rt.slug AS room_type_slug, rt.bed_type, rt.size_sqft
      FROM bookings b JOIN room_types rt ON rt.id = b.room_type_id
      WHERE b.booking_ref = ?`,
     [req.params.bookingRef]
   );
-  if (!booking) throw new ApiError(404, 'We could not find a booking with that reference.');
+  const ownsByToken = booking?.access_token && typeof token === 'string' && token === booking.access_token;
+  const ownsByAccount = booking?.customer_id && req.customer?.id === booking.customer_id;
+  if (!booking || !(ownsByToken || ownsByAccount)) {
+    throw new ApiError(404, 'We could not find a booking with that reference.');
+  }
+  return booking;
+}
+
+/** GET /api/bookings/ref/:bookingRef?token= — confirmation page / guest self-service */
+export const getBookingByRef = asyncHandler(async (req, res) => {
+  const booking = await findGuestBooking(req);
+  delete booking.access_token;
   res.json({ success: true, data: booking });
+});
+
+/** PUT /api/bookings/ref/:bookingRef/cancel — guest cancels with their token */
+export const cancelBookingByRef = asyncHandler(async (req, res) => {
+  const booking = await findGuestBooking(req);
+  assertGuestCancellable(booking);
+  await pool.query("UPDATE bookings SET status = 'Cancelled' WHERE id = ?", [booking.id]);
+  res.json({ success: true, message: 'Booking cancelled.' });
 });
 
 /** GET /api/bookings/me — the logged-in customer's bookings, bucketed by stay status */
@@ -154,9 +182,7 @@ export const cancelBooking = asyncHandler(async (req, res) => {
   const [[booking]] = await pool.query('SELECT * FROM bookings WHERE id = ?', [req.params.id]);
   if (!booking) throw new ApiError(404, 'Booking not found.');
   if (booking.customer_id !== req.customer.id) throw new ApiError(403, 'You can only cancel your own bookings.');
-  if (['Cancelled', 'Checked Out', 'Completed'].includes(booking.status)) {
-    throw new ApiError(400, `This booking is already ${booking.status.toLowerCase()} and cannot be cancelled.`);
-  }
+  assertGuestCancellable(booking);
 
   await pool.query("UPDATE bookings SET status = 'Cancelled' WHERE id = ?", [req.params.id]);
   res.json({ success: true, message: 'Booking cancelled.' });

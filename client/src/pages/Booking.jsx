@@ -101,7 +101,7 @@ export default function Booking() {
         guestPhone: form.guestPhone.trim(), specialRequests: form.specialRequests.trim() || undefined,
       });
       showToast('Booking confirmed!');
-      navigate(`/booking-confirmation/${booking.booking_ref}`);
+      navigate(`/booking-confirmation/${booking.booking_ref}?token=${booking.access_token}`);
     } catch (err) {
       setFormError(err.message);
     } finally {

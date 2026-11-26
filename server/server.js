@@ -6,6 +6,7 @@ import compression from 'compression';
 import dotenv from 'dotenv';
 
 import { testConnection } from './config/db.js';
+import { auditAdminWrites } from './middleware/auth.js';
 import {
   notFoundHandler,
   errorHandler,
@@ -160,6 +161,12 @@ app.use(
   '/api/auth',
   authRoutes
 );
+
+// =====================================================
+// ADMIN AUDIT LOG (records successful admin writes)
+// =====================================================
+
+app.use('/api/admin', auditAdminWrites);
 
 // =====================================================
 // ADMIN AUTH
