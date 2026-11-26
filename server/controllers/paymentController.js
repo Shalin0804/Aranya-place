@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { pool } from '../config/db.js';
 import { ApiError, asyncHandler } from '../utils/apiError.js';
 import { notifyBooking } from '../utils/notify.js';
-import { findGuestBooking } from './bookingController.js';
+import { findOwnBooking } from './bookingController.js';
 
 // Razorpay via its REST API (no SDK needed). Use rzp_test_ keys for test
 // mode: Razorpay then simulates payments and nothing real is charged.
@@ -44,11 +44,11 @@ export const getPaymentConfig = (req, res) => {
   res.json({ success: true, data: { enabled: Boolean(KEY_ID && KEY_SECRET), keyId: KEY_ID || null, testMode: Boolean(KEY_ID?.startsWith('rzp_test_')) } });
 };
 
-/** POST /api/payments/order { bookingRef, token } — creates a Razorpay order for the booking total. */
+/** POST /api/payments/order { bookingRef } (signed-in owner) — creates a Razorpay order for the booking total. */
 export const createOrder = asyncHandler(async (req, res) => {
   if (!KEY_ID || !KEY_SECRET) throw new ApiError(503, 'Online payment is not available yet. You can pay at check-in.');
   req.params.bookingRef = req.body.bookingRef;
-  const booking = await findGuestBooking(req);
+  const booking = await findOwnBooking(req);
   if (booking.status === 'Cancelled') throw new ApiError(400, 'This booking is cancelled.');
   if (booking.payment_status === 'Paid') throw new ApiError(400, 'This booking is already paid.');
 

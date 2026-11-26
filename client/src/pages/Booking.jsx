@@ -17,7 +17,8 @@ export default function Booking() {
   const checkIn = searchParams.get('checkIn');
   const checkOut = searchParams.get('checkOut');
   const numRooms = Number(searchParams.get('numRooms')) || 1;
-  const guestsParam = Number(searchParams.get('guests')) || 2;
+  const guestsParam = Number(searchParams.get('adults') || searchParams.get('guests')) || 2;
+  const childrenParam = Number(searchParams.get('children')) || 0;
 
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export default function Booking() {
     guestPhone: customer?.phone || '',
     guestCountry: 'India',
     adults: Math.min(guestsParam, 99),
-    children: 0,
+    children: Math.min(childrenParam, 4),
     specialRequests: '',
   });
 
@@ -108,7 +109,7 @@ export default function Booking() {
         guestPhone: form.guestPhone.trim(), guestCountry: form.guestCountry.trim() || undefined, specialRequests: form.specialRequests.trim() || undefined,
       });
       showToast('Booking confirmed!');
-      navigate(`/booking-confirmation/${booking.booking_ref}?token=${booking.access_token}`);
+      navigate(`/booking-confirmation/${booking.booking_ref}`);
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -182,12 +183,6 @@ export default function Booking() {
               onChange={handleChange('specialRequests')}
             />
           </label>
-
-          {!customer && (
-            <p className="booking-guest-note">
-              Booking as a guest. <Link to="/login">Sign in</Link> to track this booking from My Bookings automatically.
-            </p>
-          )}
 
           {formError && <p className="booking-form-error" role="alert">{formError}</p>}
 

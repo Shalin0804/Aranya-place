@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import './Auth.css';
@@ -8,6 +8,7 @@ export default function Register() {
   const { register } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const from = useLocation().state?.from;
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +24,7 @@ export default function Register() {
     try {
       await register(form);
       showToast('Account created — welcome to Aranya Palace!');
-      navigate('/account');
+      navigate(from || '/account', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,7 +41,11 @@ export default function Register() {
         <div className="auth-form-wrap">
           <p className="eyebrow">Join us</p>
           <h1 className="text-3xl">Create your account</h1>
-          <p className="auth-sub">Faster checkout, saved details, and a running history of your stays.</p>
+          <p className="auth-sub">
+            {from?.startsWith('/booking')
+              ? 'Create your account to complete your booking. Your room and dates are saved.'
+              : 'Faster checkout, saved details, and a running history of your stays.'}
+          </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <label className="booking-field">
@@ -67,7 +72,7 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
+          <p className="auth-switch">Already have an account? <Link to="/login" state={{ from }}>Sign in</Link></p>
         </div>
       </div>
     </div>

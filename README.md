@@ -3,7 +3,7 @@
 Live: https://aranya-place.vercel.app (client on Vercel, API on Render, database on TiDB Cloud).
 
 ## Features
-- **Guest booking without login**: dates, rooms, guests, country; server-side pricing and tax; unique reference; private manage link (`?token=`) to view, pay or cancel.
+- **Account-only booking**: customers sign up or sign in before confirming (no guest checkout). Clicking Book Now while signed out goes to sign-in and returns to the same room, dates, guests and room count afterwards. Forgot-password by email. Every new booking is tied to the customer's account; older guest bookings stay in the database for history.
 - **Availability engine**: real inventory per room type; concurrency-safe booking (tested: 3 simultaneous guests for the last 2 rooms → exactly 2 succeed).
 - **Payments (Razorpay)**: order created from the server-side total; booking marked Paid only after HMAC signature verification (checkout callback or signed webhook). Hidden when keys are not set.
 - **Email**: branded HTML confirmations, cancellations, updates, payment receipts, and admin new-booking alerts over any SMTP. Skipped (and logged) when SMTP is not set.

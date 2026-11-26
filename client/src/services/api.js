@@ -27,6 +27,8 @@ export const authApi = {
   login: (payload) => request(api.post('/auth/login', payload)),
   me: () => request(api.get('/auth/me')),
   updateProfile: (payload) => request(api.put('/auth/me', payload)),
+  forgotPassword: (email) => request(api.post('/auth/forgot-password', { email })),
+  resetPassword: (token, password) => request(api.post('/auth/reset-password', { token, password })),
 };
 
 export const roomTypesApi = {
@@ -37,15 +39,15 @@ export const roomTypesApi = {
 export const bookingsApi = {
   searchAvailability: (params) => request(api.get('/bookings/availability', { params })),
   create: (payload) => request(api.post('/bookings', payload)),
-  byRef: (ref, token) => request(api.get(`/bookings/ref/${ref}`, { params: { token } })),
-  cancelByRef: (ref, token) => request(api.put(`/bookings/ref/${ref}/cancel`, { token })),
+  byRef: (ref) => request(api.get(`/bookings/ref/${ref}`)),
+  cancelByRef: (ref) => request(api.put(`/bookings/ref/${ref}/cancel`)),
   mine: () => request(api.get('/bookings/me')),
   cancel: (id) => request(api.put(`/bookings/${id}/cancel`)),
 };
 
 export const paymentsApi = {
   config: () => request(api.get('/payments/config')),
-  createOrder: (bookingRef, token) => request(api.post('/payments/order', { bookingRef, token })),
+  createOrder: (bookingRef) => request(api.post('/payments/order', { bookingRef })),
   verify: (payload) => request(api.post('/payments/verify', payload)),
 };
 

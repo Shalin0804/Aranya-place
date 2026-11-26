@@ -22,7 +22,7 @@ const money = (n) => `₹${Number(n).toLocaleString('en-IN', { maximumFractionDi
 const day = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export function bookingLink(b) {
-  return `${SITE}/booking-confirmation/${b.booking_ref}${b.access_token ? `?token=${b.access_token}` : ''}`;
+  return `${SITE}/booking-confirmation/${b.booking_ref}`;
 }
 
 /** Branded wrapper; inline styles because email clients ignore <style>. */
@@ -68,7 +68,7 @@ export const templates = {
     html: layout(`We look forward to welcoming you, ${b.guest_name}`,
       `<p>Your booking at Aranya Palace is confirmed.</p>${detailsTable(b)}
 ${button(bookingLink(b), 'View or manage booking')}
-<p style="font-size:13px;color:#857E70">Keep this email: the button above is your private link to view, pay for or cancel this booking. Free cancellation online until the day before check-in.</p>`),
+<p style="font-size:13px;color:#857E70">Sign in to your account to view, pay for or cancel this booking. Free cancellation online until the day before check-in.</p>`),
   }),
   bookingCancelled: (b) => ({
     to: b.guest_email,
@@ -88,6 +88,14 @@ ${button(bookingLink(b), 'View or manage booking')}
     subject: `Payment received — ${b.booking_ref}`,
     html: layout('Thank you, your payment is received',
       `<p>We have received your payment of <strong>${money(b.total_amount)}</strong> for booking ${esc(b.booking_ref)}.</p>${detailsTable(b)}${button(bookingLink(b), 'View booking')}`),
+  }),
+  passwordReset: (c) => ({
+    to: c.email,
+    subject: 'Reset your Aranya Palace password',
+    html: layout('Reset your password',
+      `<p>Dear ${esc(c.name)}, we received a request to reset the password for your Aranya Palace account.</p>
+${button(`${SITE}/reset-password?token=${c.token}`, 'Choose a new password')}
+<p style="font-size:13px;color:#857E70">This link expires in ${c.minutes} minutes and can be used once. If you didn't ask for this, ignore this email; your password won't change.</p>`),
   }),
   adminNewBooking: (b) => ({
     to: process.env.ADMIN_NOTIFY_EMAIL,

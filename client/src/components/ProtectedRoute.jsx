@@ -10,7 +10,9 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!customer) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    // Keep the query string: for /booking it carries the selected room,
+    // dates, guests and room count, so sign-in returns to the same booking.
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   }
 
   return children;

@@ -20,6 +20,8 @@ import Profile from './pages/Profile';
 import MyBookings from './pages/MyBookings';
 import Gallery from './pages/Gallery';
 import NotFound from './pages/NotFound';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 // Admin
 import AdminLogin from './admin/pages/AdminLogin';
@@ -60,15 +62,20 @@ export default function App() {
                 element={<RoomDetails />}
               />
 
+              {/* Booking requires a customer account (no guest checkout). */}
               <Route
                 path="/booking"
-                element={<Booking />}
+                element={<ProtectedRoute><Booking /></ProtectedRoute>}
               />
 
               <Route
                 path="/booking-confirmation/:bookingRef"
-                element={<BookingConfirmation />}
+                element={<ProtectedRoute><BookingConfirmation /></ProtectedRoute>}
               />
+
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               <Route
                 path="/gallery"

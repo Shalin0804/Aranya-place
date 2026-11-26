@@ -12,6 +12,8 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const from = location.state?.from;
+  const bookingPending = from?.startsWith('/booking');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +22,7 @@ export default function Login() {
     try {
       await login(form.email, form.password);
       showToast('Welcome back!');
-      navigate(location.state?.from || '/account');
+      navigate(from || '/account', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -37,7 +39,11 @@ export default function Login() {
         <div className="auth-form-wrap">
           <p className="eyebrow">Welcome back</p>
           <h1 className="text-3xl">Sign in to your account</h1>
-          <p className="auth-sub">Track your bookings and check in faster next time.</p>
+          <p className="auth-sub">
+            {bookingPending
+              ? 'Sign in or create an account to complete your booking. Your room and dates are saved.'
+              : 'Track your bookings and check in faster next time.'}
+          </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <label className="booking-field">
@@ -49,6 +55,8 @@ export default function Login() {
               <input type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </label>
 
+            <Link to="/forgot-password" className="auth-forgot">Forgot password?</Link>
+
             {error && <p className="booking-form-error" role="alert">{error}</p>}
 
             <button type="submit" className="btn btn-brass btn-block" disabled={submitting}>
@@ -57,7 +65,7 @@ export default function Login() {
           </form>
 
           <p className="auth-demo-hint">Demo login: demo@aranyapalace.in / Guest@1234</p>
-          <p className="auth-switch">New here? <Link to="/register">Create an account</Link></p>
+          <p className="auth-switch">New here? <Link to="/register" state={{ from }}>Create an account</Link></p>
         </div>
       </div>
     </div>

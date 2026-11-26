@@ -1,7 +1,9 @@
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { pool } from '../config/db.js';
 import { ApiError, asyncHandler } from '../utils/apiError.js';
 import { signCustomerToken } from '../utils/jwt.js';
+import { sendEmail } from '../utils/email.js';
 
 const PUBLIC_FIELDS = 'id, name, email, phone, profile_image, status, created_at';
 
@@ -66,4 +68,51 @@ export const updateProfile = asyncHandler(async (req, res) => {
 
   const [[customer]] = await pool.query(`SELECT ${PUBLIC_FIELDS} FROM customers WHERE id = ?`, [req.customer.id]);
   res.json({ success: true, data: customer });
+});
+
+const sha256 = (v) => crypto.createHash('sha256').update(v).digest('hex');
+const RESET_TTL_MINUTES = 60;
+
+/**
+ * POST /api/auth/forgot-password { email }
+ * Always answers the same way, so it can't be used to find out which
+ * emails have accounts. Only a hash of the token is stored.
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const [[customer]] = await pool.query(
+    "SELECT id, name, email FROM customers WHERE email = ? AND status = 'Active'",
+    [email]
+  );
+  if (customer) {
+    const token = crypto.randomBytes(32).toString('hex');
+    await pool.query(
+      'UPDATE customers SET password_reset_hash = ?, password_reset_expires = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE id = ?',
+      [sha256(token), RESET_TTL_MINUTES, customer.id]
+    );
+    sendEmail('passwordReset', { ...customer, token, minutes: RESET_TTL_MINUTES });
+  }
+  res.json({ success: true, message: 'If an account exists for that email, a reset link has been sent.' });
+});
+
+/** POST /api/auth/reset-password { token, password } */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+  if (typeof token !== 'string' || !/^[0-9a-f]{64}$/.test(token)) {
+    throw new ApiError(400, 'This reset link is invalid or has expired.');
+  }
+  if (!password || password.length < 8) throw new ApiError(400, 'Password must be at least 8 characters.');
+
+  const [[customer]] = await pool.query(
+    "SELECT id FROM customers WHERE password_reset_hash = ? AND password_reset_expires > NOW() AND status = 'Active'",
+    [sha256(token)]
+  );
+  if (!customer) throw new ApiError(400, 'This reset link is invalid or has expired.');
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await pool.query(
+    'UPDATE customers SET password_hash = ?, password_reset_hash = NULL, password_reset_expires = NULL WHERE id = ?',
+    [passwordHash, customer.id]
+  );
+  res.json({ success: true, message: 'Your password has been reset. Please sign in.' });
 });

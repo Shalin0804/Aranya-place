@@ -19,7 +19,9 @@ When calling the claude-code MCP tool, always pass absolute paths under this pro
 - Never run `server/database/schema.sql` or `npm run seed` against the live DB: they DROP/TRUNCATE everything. Seed refuses when bookings exist unless `--force`.
 - Migrations must be additive and idempotent (`IF NOT EXISTS`); TiDB auto-commits DDL.
 - Prices, taxes and availability are computed server-side only (`server/utils/booking.js`). Bookings are created in a transaction that locks the room type row (`FOR UPDATE`).
-- Guests book without an account. A booking's `access_token` is the only way a guest (non-logged-in) reads or cancels it via `/api/bookings/ref/:ref?token=`.
+- **No guest checkout.** Creating, viewing (`/api/bookings/ref/:ref`), cancelling and paying for a booking all require a signed-in customer (`requireCustomerAuth`); new bookings always store `customer_id`. Older guest bookings (`customer_id` NULL) are kept for history and are visible to admins only. The `access_token` column is legacy: no longer issued or accepted.
+- Customer and admin auth are separate JWT types (`type: 'customer'` vs `'admin'`); neither is accepted where the other is required.
+- Password reset: `/api/auth/forgot-password` → emailed one-time link (hash stored, 60 min) → `/api/auth/reset-password`.
 - Admin routes: `requireAdminAuth` + `requirePermission('<perm>')` from `server/middleware/auth.js`. The role→permission map lives there; Super Admin has all. Successful admin writes are logged to `activity_logs` automatically.
 - Booking transactions run at READ COMMITTED + `FOR UPDATE` on the room type (see `server/database/README.md` for why TiDB needs this).
 - Booking events go through `notifyBooking(id, event)` (`server/utils/notify.js`): emails via SMTP (skipped if unset) and an admin notification row. Never await it in a request path that must not fail.

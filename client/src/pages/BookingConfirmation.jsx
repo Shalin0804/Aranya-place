@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { HiCheckCircle, HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
 import { bookingsApi, paymentsApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
@@ -8,8 +8,6 @@ import './BookingConfirmation.css';
 
 export default function BookingConfirmation() {
   const { bookingRef } = useParams();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
   const { showToast } = useToast();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,17 +16,17 @@ export default function BookingConfirmation() {
   const [paying, setPaying] = useState(false);
 
   useEffect(() => {
-    bookingsApi.byRef(bookingRef, token)
+    bookingsApi.byRef(bookingRef)
       .then(setBooking)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [bookingRef, token]);
+  }, [bookingRef]);
 
   useEffect(() => {
     paymentsApi.config().then(setPayment).catch(() => {});
   }, []);
 
-  const reload = () => bookingsApi.byRef(bookingRef, token).then(setBooking);
+  const reload = () => bookingsApi.byRef(bookingRef).then(setBooking);
 
   const loadCheckout = () => new Promise((resolve, reject) => {
     if (window.Razorpay) return resolve();
@@ -45,7 +43,7 @@ export default function BookingConfirmation() {
   const handlePay = async () => {
     setPaying(true);
     try {
-      const order = await paymentsApi.createOrder(bookingRef, token);
+      const order = await paymentsApi.createOrder(bookingRef);
       await loadCheckout();
       const rzp = new window.Razorpay({
         key: order.keyId,
@@ -103,7 +101,7 @@ export default function BookingConfirmation() {
   const handleCancel = async () => {
     if (!window.confirm('Cancel this booking? This cannot be undone.')) return;
     try {
-      await bookingsApi.cancelByRef(bookingRef, token);
+      await bookingsApi.cancelByRef(bookingRef);
       setBooking({ ...booking, status: 'Cancelled' });
       showToast('Your booking has been cancelled.');
     } catch (err) {
@@ -132,7 +130,7 @@ export default function BookingConfirmation() {
           <div className="confirmation-head no-print">
             <HiCheckCircle size={48} className="confirmation-icon" />
             <h1 className="text-2xl">{booking.status === 'Cancelled' ? 'Booking Cancelled' : 'Booking Confirmed'}</h1>
-            <p>Bookmark this page: it is your private link to view or cancel this booking.</p>
+            <p>You can view, pay for or cancel this booking any time from My Bookings.</p>
           </div>
 
           <div className="confirmation-ref">

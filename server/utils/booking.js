@@ -62,13 +62,8 @@ export function generateBookingRef() {
   return `HTL-${year}-${suffix}`;
 }
 
-/** Secret handed only to the guest who made the booking (URL + email). */
-export function generateAccessToken() {
-  return crypto.randomBytes(24).toString('hex');
-}
-
-/** A booking can be cancelled by the guest only before the check-in date. */
-export function assertGuestCancellable(booking) {
+/** A customer can cancel online only before the check-in date. */
+export function assertCancellable(booking) {
   if (['Cancelled', 'Checked In', 'Checked Out', 'Completed'].includes(booking.status)) {
     throw new ApiError(400, `This booking is already ${booking.status.toLowerCase()} and cannot be cancelled.`);
   }

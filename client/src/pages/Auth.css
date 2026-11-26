@@ -48,3 +48,10 @@
   .auth-media { display: none; }
   .auth-panel { padding-top: calc(84px + var(--space-lg)); }
 }
+
+.auth-forgot {
+  align-self: flex-end;
+  font-size: var(--text-sm);
+  color: var(--color-brass);
+  font-weight: 600;
+}
