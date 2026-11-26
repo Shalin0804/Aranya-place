@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { HiCheckCircle, HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
-import { bookingsApi } from '../services/api';
+import { bookingsApi, paymentsApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate } from '../utils/format';
 import './BookingConfirmation.css';
@@ -14,6 +14,8 @@ export default function BookingConfirmation() {
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [payment, setPayment] = useState({ enabled: false });
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     bookingsApi.byRef(bookingRef, token)
@@ -21,6 +23,57 @@ export default function BookingConfirmation() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [bookingRef, token]);
+
+  useEffect(() => {
+    paymentsApi.config().then(setPayment).catch(() => {});
+  }, []);
+
+  const reload = () => bookingsApi.byRef(bookingRef, token).then(setBooking);
+
+  const loadCheckout = () => new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = resolve;
+    script.onerror = () => reject(new Error('Could not load the payment window. Check your connection.'));
+    document.body.appendChild(script);
+  });
+
+  // The booking only becomes "Paid" after the server verifies Razorpay's
+  // signature (here or via webhook); the browser's success callback alone
+  // proves nothing.
+  const handlePay = async () => {
+    setPaying(true);
+    try {
+      const order = await paymentsApi.createOrder(bookingRef, token);
+      await loadCheckout();
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        order_id: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Aranya Palace Resort & Spa',
+        description: `Booking ${bookingRef}`,
+        prefill: { name: order.name, email: order.email, contact: order.contact },
+        theme: { color: '#A97C43' },
+        handler: async (response) => {
+          try {
+            await paymentsApi.verify(response);
+            await reload();
+            showToast('Payment received. Thank you!');
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      rzp.on('payment.failed', (r) => showToast(r.error?.description || 'Payment failed.', 'error'));
+      rzp.open();
+    } catch (err) {
+      showToast(err.message, 'error');
+      setPaying(false);
+    }
+  };
 
   const handleDownload = () => {
     if (!booking) return;
@@ -96,6 +149,7 @@ export default function BookingConfirmation() {
             <div><span>Rooms</span><strong>{booking.num_rooms}</strong></div>
             <div><span>Guests</span><strong>{booking.adults} adult{booking.adults > 1 ? 's' : ''}{booking.children > 0 ? `, ${booking.children} children` : ''}</strong></div>
             <div><span>Status</span><strong className="confirmation-status">{booking.status}</strong></div>
+            <div><span>Payment</span><strong>{booking.payment_status}</strong></div>
           </div>
 
           <div className="confirmation-total">
@@ -106,6 +160,11 @@ export default function BookingConfirmation() {
           <div className="confirmation-actions no-print">
             <button className="btn btn-outline" onClick={() => window.print()}><HiOutlinePrinter size={16} /> Print</button>
             <button className="btn btn-outline" onClick={handleDownload}><HiOutlineDownload size={16} /> Download</button>
+            {payment.enabled && cancellable && booking.payment_status !== 'Paid' && (
+              <button className="btn btn-brass" onClick={handlePay} disabled={paying}>
+                {paying ? 'Opening payment…' : `Pay ${formatCurrency(booking.total_amount)} online`}
+              </button>
+            )}
             {cancellable && (
               <button className="btn btn-outline" onClick={handleCancel}>Cancel Booking</button>
             )}

@@ -130,14 +130,42 @@ export default function AdminDashboard() {
         />
 
         <StatCard
-          title="Available Rooms"
+          title="Revenue This Week / Month"
+          value={`₹${Number(stats.weekRevenue || 0).toLocaleString('en-IN')}`}
+          icon="📈"
+          description={`₹${Number(stats.monthRevenue || 0).toLocaleString('en-IN')} this month`}
+        />
+
+        <StatCard
+          title="Today's Check-ins"
+          value={Number(stats.todayCheckIns || 0)}
+          icon="🛎️"
+          description={`${Number(stats.pendingArrivals || 0)} still to arrive`}
+        />
+
+        <StatCard
+          title="Today's Check-outs"
+          value={Number(stats.todayCheckOuts || 0)}
+          icon="🧳"
+          description={`${Number(stats.pendingDepartures || 0)} still to depart`}
+        />
+
+        <StatCard
+          title="Occupied Tonight"
+          value={`${Number(stats.occupiedRooms || 0)} (${Number(stats.occupancyRate || 0)}%)`}
+          icon="🔑"
+          description="Rooms booked for tonight"
+        />
+
+        <StatCard
+          title="Available Tonight"
           value={Number(
             stats.availableRooms || 0
           )}
           icon="🛏️"
           description={`Out of ${
             Number(stats.totalRooms || 0)
-          } rooms`}
+          } rooms${stats.outOfOrderRooms ? `, ${stats.outOfOrderRooms} out of order` : ''}`}
         />
 
         <StatCard

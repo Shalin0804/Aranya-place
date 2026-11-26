@@ -158,45 +158,45 @@ const [[activeOffers]] = await pool.query(`
        AVAILABLE ROOMS
     ===================================================== */
 
-    let availableRooms = 0;
-    let totalRooms = 0;
+    // Tonight's occupancy from actual bookings, in hotel (IST) dates.
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    const monthStart = `${today.slice(0, 8)}01`;
 
-    try {
+    const [[rooms]] = await pool.query(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(status NOT IN ('Maintenance', 'Out of Service')) AS usable,
+        SUM(status IN ('Maintenance', 'Out of Service')) AS outOfOrder
+      FROM rooms
+    `);
+    const totalRooms = Number(rooms?.total || 0);
+    const usableRooms = Number(rooms?.usable || 0);
 
-      const [[rooms]] = await pool.query(`
-        SELECT
-          COUNT(*) AS total,
-          SUM(
-            CASE
-              WHEN status = 'Available'
-              THEN 1
-              ELSE 0
-            END
-          ) AS available
-        FROM rooms
-      `);
+    const [[ops]] = await pool.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN check_in <= ? AND check_out > ? THEN num_rooms END), 0) AS occupied,
+         COALESCE(SUM(CASE WHEN check_in = ? AND status = 'Confirmed' THEN 1 END), 0) AS arrivals,
+         COALESCE(SUM(CASE WHEN check_out = ? AND status = 'Checked In' THEN 1 END), 0) AS departures,
+         COALESCE(SUM(CASE WHEN check_in = ? THEN 1 END), 0) AS checkInsToday,
+         COALESCE(SUM(CASE WHEN check_out = ? THEN 1 END), 0) AS checkOutsToday
+       FROM bookings
+       WHERE status IN ('Pending', 'Confirmed', 'Checked In', 'Checked Out')`,
+      [today, today, today, today, today, today]
+    );
+    const occupiedRooms = Math.min(Number(ops.occupied), usableRooms);
+    const availableRooms = Math.max(usableRooms - occupiedRooms, 0);
 
-      totalRooms = Number(
-        rooms?.total || 0
-      );
+    const [[revenue]] = await pool.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN created_at >= DATE_SUB(?, INTERVAL 6 DAY) THEN total_amount END), 0) AS week,
+         COALESCE(SUM(CASE WHEN created_at >= ? THEN total_amount END), 0) AS month
+       FROM bookings WHERE payment_status = 'Paid' AND status != 'Cancelled'`,
+      [today, monthStart]
+    );
 
-      availableRooms = Number(
-        rooms?.available || 0
-      );
-
-    } catch (error) {
-
-      /*
-        If your project doesn't have a rooms
-        table, don't crash the dashboard.
-      */
-
-      console.log(
-        'Rooms statistics unavailable:',
-        error.message
-      );
-
-    }
+    const [[guestBookings]] = await pool.query(
+      'SELECT COUNT(*) AS total FROM bookings WHERE customer_id IS NULL'
+    );
 
 
     /* =====================================================
@@ -304,6 +304,26 @@ activeOffers:
         totalRooms,
 
         availableRooms,
+
+        occupiedRooms,
+
+        outOfOrderRooms: Number(rooms?.outOfOrder || 0),
+
+        occupancyRate: usableRooms ? Math.round((occupiedRooms / usableRooms) * 100) : 0,
+
+        todayCheckIns: Number(ops.checkInsToday),
+
+        todayCheckOuts: Number(ops.checkOutsToday),
+
+        pendingArrivals: Number(ops.arrivals),
+
+        pendingDepartures: Number(ops.departures),
+
+        weekRevenue: Number(revenue.week),
+
+        monthRevenue: Number(revenue.month),
+
+        guestBookings: Number(guestBookings.total),
 
         recentBookings,
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { HiOutlineCalendar, HiOutlineUserGroup, HiOutlineHome } from 'react-icons/hi';
-import { roomTypesApi, bookingsApi } from '../services/api';
+import { roomTypesApi, bookingsApi, settingsApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate, nightsBetween } from '../utils/format';
@@ -23,11 +23,13 @@ export default function Booking() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [taxRate, setTaxRate] = useState(12);
 
   const [form, setForm] = useState({
     guestName: customer?.name || '',
     guestEmail: customer?.email || '',
     guestPhone: customer?.phone || '',
+    guestCountry: 'India',
     adults: Math.min(guestsParam, 99),
     children: 0,
     specialRequests: '',
@@ -43,6 +45,10 @@ export default function Booking() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [roomTypeId, checkIn, checkOut]);
+
+  useEffect(() => {
+    settingsApi.get().then((s) => s?.tax_percentage != null && setTaxRate(Number(s.tax_percentage))).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (customer) {
@@ -73,7 +79,8 @@ export default function Booking() {
 
   const nights = nightsBetween(checkIn, checkOut);
   const subtotal = room.base_price * nights * numRooms;
-  const tax = subtotal * 0.12;
+  // Display estimate only; the server recalculates the real total.
+  const tax = subtotal * (taxRate / 100);
   const total = subtotal + tax;
   const isSoldOut = room.availableRooms < numRooms;
 
@@ -98,7 +105,7 @@ export default function Booking() {
         roomTypeId, checkIn, checkOut, numRooms,
         adults: Number(form.adults), children: Number(form.children),
         guestName: form.guestName.trim(), guestEmail: form.guestEmail.trim(),
-        guestPhone: form.guestPhone.trim(), specialRequests: form.specialRequests.trim() || undefined,
+        guestPhone: form.guestPhone.trim(), guestCountry: form.guestCountry.trim() || undefined, specialRequests: form.specialRequests.trim() || undefined,
       });
       showToast('Booking confirmed!');
       navigate(`/booking-confirmation/${booking.booking_ref}?token=${booking.access_token}`);
@@ -111,6 +118,7 @@ export default function Booking() {
 
   return (
     <div className="booking-page">
+      <title>Complete Your Booking — Aranya Palace Resort &amp; Spa</title>
       <section className="booking-hero">
         <div className="container">
           <p className="eyebrow">Complete your reservation</p>
@@ -135,9 +143,16 @@ export default function Booking() {
 
           <div className="booking-field-row">
             <label className="booking-field">
-              <span>Phone *</span>
-              <input type="tel" value={form.guestPhone} onChange={handleChange('guestPhone')} required />
+              <span>Mobile number *</span>
+              <input type="tel" autoComplete="tel" value={form.guestPhone} onChange={handleChange('guestPhone')} required />
             </label>
+            <label className="booking-field">
+              <span>Country *</span>
+              <input autoComplete="country-name" value={form.guestCountry} onChange={handleChange('guestCountry')} required maxLength={80} />
+            </label>
+          </div>
+
+          <div className="booking-field-row">
             <div className="booking-field-row" style={{ flex: 1 }}>
               <label className="booking-field">
                 <span>Adults</span>
@@ -199,8 +214,9 @@ export default function Booking() {
               <div className="booking-summary-line"><HiOutlineUserGroup size={16} /> {form.adults} adult{form.adults > 1 ? 's' : ''}{form.children > 0 ? `, ${form.children} children` : ''}</div>
 
               <div className="booking-price-breakdown">
-                <div><span>{formatCurrency(room.base_price)} &times; {nights} &times; {numRooms}</span><span>{formatCurrency(subtotal)}</span></div>
-                <div><span>Taxes (12%)</span><span>{formatCurrency(tax)}</span></div>
+                <div><span>Price per night</span><span>{formatCurrency(room.base_price)}</span></div>
+                <div><span>{formatCurrency(room.base_price)} &times; {nights} night{nights === 1 ? '' : 's'} &times; {numRooms} room{numRooms > 1 ? 's' : ''}</span><span>{formatCurrency(subtotal)}</span></div>
+                <div><span>Taxes ({taxRate}%)</span><span>{formatCurrency(tax)}</span></div>
                 <div className="rd-total"><span>Total</span><span>{formatCurrency(total)}</span></div>
               </div>
             </div>

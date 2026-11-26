@@ -40,6 +40,7 @@ export default function Rooms() {
 
   return (
     <div className="rooms-page">
+      <title>Rooms &amp; Suites — Aranya Palace Resort &amp; Spa</title>
       <section className="rooms-hero">
         <div className="container">
           <p className="eyebrow">Rooms &amp; Suites</p>

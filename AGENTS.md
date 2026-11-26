@@ -21,4 +21,7 @@ When calling the claude-code MCP tool, always pass absolute paths under this pro
 - Prices, taxes and availability are computed server-side only (`server/utils/booking.js`). Bookings are created in a transaction that locks the room type row (`FOR UPDATE`).
 - Guests book without an account. A booking's `access_token` is the only way a guest (non-logged-in) reads or cancels it via `/api/bookings/ref/:ref?token=`.
 - Admin routes: `requireAdminAuth` + `requirePermission('<perm>')` from `server/middleware/auth.js`. The role→permission map lives there; Super Admin has all. Successful admin writes are logged to `activity_logs` automatically.
+- Booking transactions run at READ COMMITTED + `FOR UPDATE` on the room type (see `server/database/README.md` for why TiDB needs this).
+- Booking events go through `notifyBooking(id, event)` (`server/utils/notify.js`): emails via SMTP (skipped if unset) and an admin notification row. Never await it in a request path that must not fail.
+- Payments: Razorpay via REST (`server/controllers/paymentController.js`). A booking becomes Paid only after HMAC verification (checkout callback or signed webhook).
 - Use parameterized queries only.

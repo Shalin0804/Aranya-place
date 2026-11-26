@@ -1,4 +1,5 @@
 import { pool } from '../config/db.js';
+import { notifyBooking } from '../utils/notify.js';
 import { ApiError, asyncHandler } from '../utils/apiError.js';
 import {
   nightsBetween,
@@ -18,19 +19,43 @@ import {
 export const createBooking = asyncHandler(async (req, res) => {
   const {
     roomTypeId, checkIn, checkOut, numRooms, adults, children,
-    guestName, guestEmail, guestPhone, specialRequests, offerId,
+    guestName, guestEmail, guestPhone, guestCountry, specialRequests, offerId,
   } = req.body;
 
   if (!roomTypeId) throw new ApiError(400, 'Please select a room type.');
   if (!guestName || !guestEmail || !guestPhone) {
     throw new ApiError(400, 'Guest name, email, and phone are required.');
   }
+  if (typeof guestName !== 'string' || guestName.trim().length < 2 || guestName.length > 150) {
+    throw new ApiError(400, 'Please enter your full name.');
+  }
+  if (typeof guestEmail !== 'string' || guestEmail.length > 190 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) {
+    throw new ApiError(400, 'Please enter a valid email address.');
+  }
+  if (typeof guestPhone !== 'string' || !/^\+?[\d\s()-]{7,20}$/.test(guestPhone.trim())) {
+    throw new ApiError(400, 'Please enter a valid phone number.');
+  }
+  if (guestCountry != null && (typeof guestCountry !== 'string' || guestCountry.length > 80)) {
+    throw new ApiError(400, 'Please enter a valid country.');
+  }
+  if (specialRequests != null && (typeof specialRequests !== 'string' || specialRequests.length > 1000)) {
+    throw new ApiError(400, 'Special requests must be under 1000 characters.');
+  }
   const rooms = Number(numRooms) || 1;
-  if (rooms < 1) throw new ApiError(400, 'Number of rooms must be at least 1.');
+  if (!Number.isInteger(rooms) || rooms < 1 || rooms > 10) throw new ApiError(400, 'You can book between 1 and 10 rooms.');
+  if (!Number.isInteger(Number(adults) || 1) || (Number(adults) || 1) < 1 || (Number(children) || 0) < 0) {
+    throw new ApiError(400, 'Please enter a valid number of guests.');
+  }
   const nights = validateDateRange(checkIn, checkOut);
 
   const conn = await pool.getConnection();
   try {
+    // READ COMMITTED is required on TiDB: under REPEATABLE READ its snapshot
+    // is fixed when the FOR UPDATE below *starts*, so a booking committed
+    // while we waited for the lock would be invisible to the availability
+    // count and the room would be double-booked. The lock serializes us;
+    // RC makes each subsequent read see the latest commits.
+    await conn.query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
     await conn.beginTransaction();
 
     // Serialize concurrent booking attempts for this room type.
@@ -79,13 +104,14 @@ export const createBooking = asyncHandler(async (req, res) => {
     const accessToken = generateAccessToken();
     const [result] = await conn.query(
       `INSERT INTO bookings
-        (booking_ref, customer_id, guest_name, guest_email, guest_phone, room_type_id,
+        (booking_ref, customer_id, guest_name, guest_email, guest_phone, guest_country, room_type_id,
          check_in, check_out, nights, num_rooms, adults, children, special_requests,
          room_price, subtotal, tax_amount, discount_amount, total_amount, offer_id,
          status, payment_status, access_token)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending', ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending', ?)`,
       [
-        bookingRef, req.customer?.id || null, guestName.trim(), guestEmail.toLowerCase(), guestPhone,
+        bookingRef, req.customer?.id || null, guestName.trim(), guestEmail.trim().toLowerCase(), guestPhone.trim(),
+        guestCountry?.trim() || null,
         roomTypeId, checkIn, checkOut, nights, rooms, Number(adults) || 1, Number(children) || 0,
         specialRequests || null, roomPrice, subtotal, taxAmount, discountAmount, totalAmount, appliedOfferId,
         accessToken,
@@ -102,6 +128,7 @@ export const createBooking = asyncHandler(async (req, res) => {
     }
 
     await conn.commit();
+    notifyBooking(result.insertId, 'created');
 
     const [[booking]] = await pool.query(
       `SELECT b.*, rt.name AS room_type_name, rt.slug AS room_type_slug
@@ -123,7 +150,7 @@ export const createBooking = asyncHandler(async (req, res) => {
  * issued at booking time (?token= / body.token) or the owning logged-in
  * customer. Anything else gets the same 404, so references can't be probed.
  */
-async function findGuestBooking(req) {
+export async function findGuestBooking(req) {
   const token = req.query.token || req.body?.token;
   const [[booking]] = await pool.query(
     `SELECT b.*, rt.name AS room_type_name, rt.slug AS room_type_slug, rt.bed_type, rt.size_sqft
@@ -151,6 +178,7 @@ export const cancelBookingByRef = asyncHandler(async (req, res) => {
   const booking = await findGuestBooking(req);
   assertGuestCancellable(booking);
   await pool.query("UPDATE bookings SET status = 'Cancelled' WHERE id = ?", [booking.id]);
+  notifyBooking(booking.id, 'cancelled');
   res.json({ success: true, message: 'Booking cancelled.' });
 });
 
@@ -185,6 +213,7 @@ export const cancelBooking = asyncHandler(async (req, res) => {
   assertGuestCancellable(booking);
 
   await pool.query("UPDATE bookings SET status = 'Cancelled' WHERE id = ?", [req.params.id]);
+  notifyBooking(booking.id, 'cancelled');
   res.json({ success: true, message: 'Booking cancelled.' });
 });
 

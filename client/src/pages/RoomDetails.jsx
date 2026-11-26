@@ -71,6 +71,19 @@ export default function RoomDetails() {
 
   return (
     <div className="room-details">
+      <title>{`${room.name} — Aranya Palace Resort & Spa`}</title>
+      <script type="application/ld+json">{JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'HotelRoom',
+        name: room.name,
+        description: room.description,
+        image: room.images,
+        bed: room.bed_type,
+        floorSize: { '@type': 'QuantitativeValue', value: room.size_sqft, unitCode: 'FTK' },
+        occupancy: { '@type': 'QuantitativeValue', maxValue: room.max_guests },
+        containedInPlace: { '@type': 'Hotel', name: 'Aranya Palace Resort & Spa' },
+        offers: { '@type': 'Offer', price: room.base_price, priceCurrency: 'INR', unitText: 'night' },
+      })}</script>
       {/* ---------- Gallery ---------- */}
       <section className="rd-gallery">
         <div className="rd-gallery-main" onClick={() => setLightboxIndex(0)}>

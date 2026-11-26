@@ -81,6 +81,7 @@ export default function Home() {
 
   return (
     <>
+      <title>Aranya Palace Resort &amp; Spa — Heritage Haveli Resort near Ahmedabad</title>
       {/* ---------- Hero ---------- */}
       <section className="hero">
         <div className="hero-media">

@@ -80,7 +80,7 @@
   overflow: hidden;
   box-shadow: var(--shadow-lg);
 }
-.booking-summary-card img { height: 180px; object-fit: cover; }
+.booking-summary-card img { width: 100%; height: 180px; object-fit: cover; }
 .booking-summary-body { padding: var(--space-md); }
 .booking-summary-body h3 { font-size: var(--text-lg); margin: 0.3rem 0 var(--space-sm); }
 

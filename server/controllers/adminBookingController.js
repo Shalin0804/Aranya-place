@@ -1,5 +1,6 @@
 import { pool } from '../config/db.js';
 import { asyncHandler, ApiError } from '../utils/apiError.js';
+import { notifyBooking } from '../utils/notify.js';
 
 /**
  * GET /api/admin/bookings
@@ -269,6 +270,10 @@ export const updateBookingStatus =
       ]
     );
 
+    if (status !== booking.status) {
+      notifyBooking(booking.id, status === 'Cancelled' ? 'cancelled' : 'updated');
+    }
+
     res.json({
       success: true,
       message:
@@ -359,6 +364,8 @@ export const updatePaymentStatus =
       );
     }
 
+    if (paymentStatus === 'Paid') notifyBooking(booking.id, 'paid');
+
     res.json({
       success: true,
 
@@ -419,6 +426,8 @@ export const cancelAdminBooking =
       `,
       [id]
     );
+
+    notifyBooking(booking.id, 'cancelled');
 
     res.json({
       success: true,

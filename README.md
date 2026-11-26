@@ -1,48 +1,26 @@
-# Aranya Palace Resort & Spa — Customer Website
+# Aranya Palace Resort & Spa
 
-Status: **Customer-facing site + backend, complete and tested.** The admin
-dashboard has not been built yet (per your instructions, that's phase 2).
+Live: https://aranya-place.vercel.app (client on Vercel, API on Render, database on TiDB Cloud).
 
-## What's working
+## Features
+- **Guest booking without login**: dates, rooms, guests, country; server-side pricing and tax; unique reference; private manage link (`?token=`) to view, pay or cancel.
+- **Availability engine**: real inventory per room type; concurrency-safe booking (tested: 3 simultaneous guests for the last 2 rooms → exactly 2 succeed).
+- **Payments (Razorpay)**: order created from the server-side total; booking marked Paid only after HMAC signature verification (checkout callback or signed webhook). Hidden when keys are not set.
+- **Email**: branded HTML confirmations, cancellations, updates, payment receipts, and admin new-booking alerts over any SMTP. Skipped (and logged) when SMTP is not set.
+- **Admin dashboard**: occupancy tonight, today's check-ins/outs, week/month revenue, bookings, rooms, customers, offers, reviews, gallery, settings. Role-based permissions (Super Admin, Manager, Receptionist, Accountant, Housekeeping) and an audit log of all admin changes.
+- **SEO**: per-page titles, Open Graph, canonical, `Resort` + `HotelRoom` structured data, `robots.txt`, `sitemap.xml`.
 
-**Backend** (Node/Express + MySQL):
-- Full schema (`server/database/schema.sql`) covering the whole spec —
-  including tables the admin dashboard will use later.
-- Seed script with realistic demo data: 6 room types, 28 physical rooms,
-  20 customer accounts, ~30 bookings across past/current/future dates,
-  6 approved reviews, 3 active offers, gallery images.
-- REST API: auth (register/login/JWT), room browsing with live availability,
-  race-condition-safe booking creation, booking lookup/cancel, reviews,
-  settings, offers, gallery. Rate-limited, helmet + CORS, centralized errors.
-- Tested end-to-end: booked the last 2 units of a room type, confirmed a 3rd
-  request correctly gets rejected as fully booked; logged in, created a
-  booking, confirmed it shows up in "my bookings."
+Database details: [server/database/README.md](server/database/README.md).
 
-**Frontend** (React + Vite, custom CSS, no Tailwind):
-- Home — hero with live search, featured rooms, about, amenities, live
-  special offers, gallery preview, live guest reviews, nearby attractions
-- Rooms — full listing with live availability by date/guest search, sorting
-- Room Details — image gallery + lightbox, amenities, policies, per-room
-  reviews, sticky booking panel with real-time price calculation
-- Booking — guest details form, price breakdown, submits to the real API
-- Booking Confirmation — reference number, print / download / email actions
-- Login / Register, Account (Profile + My Bookings with cancel, tabbed by
-  upcoming/current/completed/cancelled)
-- Gallery with category filters
-- Fully responsive (mobile drawer nav, stacking grids, touch-friendly forms)
+## Deployment
 
-Design direction: "Aranya Palace" — a restored 1920s haveli turned resort
-in an orchard outside Ahmedabad. Ivory/charcoal/brass palette with a deep
-forest-green secondary accent, Fraunces display serif + Inter body, a
-botanical line-art divider as the recurring motif, and a slow golden-hour
-light animation in the hero.
+**API (Render Web Service)**: Root Directory `server`, Build `npm install`, Start `npm start`, Health Check Path `/api/health` (returns 503 if TiDB is unreachable). Set the environment variables from `server/.env.example`: at minimum `DB_*` (or `DATABASE_URL`), `DB_SSL=true`, `JWT_SECRET`, `NODE_ENV=production`, `CLIENT_URL` (the Vercel URL).
 
-## What's NOT built yet
+**Client (Vercel)**: Root Directory `client`, env `VITE_API_URL=https://<render-service>.onrender.com/api`, then redeploy.
 
-- Admin dashboard (rooms, bookings, customers, reports, roles, etc.)
-- Payment gateway integration (schema + status tracking exist; no live gateway)
-- Notification delivery (table exists; no email/SMS sending wired up —
-  "Email Confirmation" on the confirmation page is a UI stub)
+**Razorpay webhook**: Dashboard → Settings → Webhooks → URL `https://<render-service>.onrender.com/api/payments/webhook`, events `payment.captured`, `payment.failed`, `order.paid`, secret = `RAZORPAY_WEBHOOK_SECRET`.
+
+**Schema changes**: run `cd server && npm run migrate` once (from any machine whose `.env` points at the database) before deploying code that needs them.
 
 ## Running it locally
 
@@ -101,4 +79,3 @@ aranya-resort/
         └── styles/             Design tokens + global styles
 ```
 
-Say the word when you're ready for the admin dashboard.

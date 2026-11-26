@@ -43,6 +43,12 @@ export const bookingsApi = {
   cancel: (id) => request(api.put(`/bookings/${id}/cancel`)),
 };
 
+export const paymentsApi = {
+  config: () => request(api.get('/payments/config')),
+  createOrder: (bookingRef, token) => request(api.post('/payments/order', { bookingRef, token })),
+  verify: (payload) => request(api.post('/payments/verify', payload)),
+};
+
 export const reviewsApi = {
   list: (params) => request(api.get('/reviews', { params })),
   submit: (payload) => request(api.post('/reviews', payload)),

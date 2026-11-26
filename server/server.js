@@ -19,6 +19,8 @@ import {
 import authRoutes from './routes/authRoutes.js';
 import roomTypeRoutes from './routes/roomTypeRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import { razorpayWebhook } from './controllers/paymentController.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 
 import {
@@ -123,6 +125,9 @@ app.use(
 
 app.use(compression());
 
+// Razorpay webhook signs the raw body, so it must be read before express.json.
+app.post('/api/payments/webhook', express.raw({ type: 'application/json', limit: '1mb' }), razorpayWebhook);
+
 app.use(
   express.json({
     limit: '2mb',
@@ -143,15 +148,17 @@ if (process.env.NODE_ENV !== 'test') {
 // HEALTH CHECK
 // =====================================================
 
-app.get(
-  '/api/health',
-  (req, res) => {
-    res.json({
-      success: true,
-      message: 'Aranya Palace API is running.',
-    });
+// Reports database reachability too, so Render health checks catch a
+// broken TiDB connection rather than only a running process.
+app.get('/api/health', async (req, res) => {
+  try {
+    await testConnection();
+    res.json({ success: true, message: 'Aranya Palace API is running.', database: 'connected' });
+  } catch (err) {
+    console.error('[HEALTH] database unreachable:', err.message);
+    res.status(503).json({ success: false, message: 'Database unreachable.', database: 'disconnected' });
   }
-);
+});
 
 // =====================================================
 // PUBLIC AUTH
@@ -265,6 +272,15 @@ app.use(
 app.use(
   '/api/bookings',
   bookingRoutes
+);
+
+// =====================================================
+// PUBLIC PAYMENTS (Razorpay)
+// =====================================================
+
+app.use(
+  '/api/payments',
+  paymentRoutes
 );
 
 // =====================================================

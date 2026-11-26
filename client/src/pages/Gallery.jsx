@@ -27,6 +27,7 @@ export default function Gallery() {
 
   return (
     <div className="gallery-page">
+      <title>Gallery — Aranya Palace Resort &amp; Spa</title>
       <section className="rooms-hero">
         <div className="container">
           <p className="eyebrow">A closer look</p>
