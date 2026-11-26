@@ -21,6 +21,36 @@ const AMENITIES = [
   { icon: <HiOutlineDesktopComputer size={26} />, label: 'Work-friendly rooms', desc: 'A proper desk and reliable connectivity in every category.' },
 ];
 
+const HERO_SLIDES = [
+  { src: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1800', alt: 'Aranya Palace courtyard at golden hour' },
+  { src: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1800', alt: 'Teak pool deck with loungers at dusk' },
+  { src: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1800', alt: 'The pool lit up after sunset' },
+];
+
+const EXPERIENCES = [
+  {
+    eyebrow: 'Spa & wellness',
+    title: 'Six treatment rooms, no clocks',
+    text: 'Ayurvedic abhyanga, Balinese massage and hot-stone therapies, using oils pressed from the orchard. Book a single treatment or a half-day ritual.',
+    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200',
+    alt: 'Therapist giving an oil massage in the spa',
+  },
+  {
+    eyebrow: 'Courtyard dining',
+    title: 'Gujarati thalis under the mango canopy',
+    text: 'Regional and pan-Indian menus cooked to order: slow-simmered curries, fresh rotli from the tandoor, and breakfast that runs as long as you like.',
+    image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=1200',
+    alt: 'Bowls of Indian curry with rice',
+  },
+  {
+    eyebrow: 'The pool',
+    title: 'Twenty metres of quiet',
+    text: 'An orchard-facing pool open from sunrise until well after dark, with loungers, shade, and drinks brought down from the courtyard bar.',
+    image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1200',
+    alt: 'Wooden pool deck with loungers and umbrellas',
+  },
+];
+
 const ATTRACTIONS = [
   { name: 'Sabarmati Riverfront', distance: '38 km', image: '/images/sabarmati-riverfront.jpg' },
   { name: 'Adalaj Stepwell', distance: '25 km', image: '/images/adalaj-stepwell.jpg', credit: 'Photo: Tejal Acharya, CC BY-SA 3.0', creditUrl: 'https://commons.wikimedia.org/wiki/File:Adalaj_Vav_01.jpg' },
@@ -54,10 +84,9 @@ export default function Home() {
       {/* ---------- Hero ---------- */}
       <section className="hero">
         <div className="hero-media">
-          <img
-            src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=1800"
-            alt="Aranya Palace courtyard at golden hour"
-          />
+          {HERO_SLIDES.map((slide, i) => (
+            <img key={slide.src} src={slide.src} alt={slide.alt} className={`hero-slide hero-slide-${i}`} fetchPriority={i === 0 ? 'high' : 'low'} />
+          ))}
           <div className="hero-wash" />
         </div>
 
@@ -129,6 +158,29 @@ export default function Home() {
               <div><strong>40</strong><span>Rooms across 6 categories</span></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ---------- Experiences ---------- */}
+      <section className="section experiences">
+        <div className="container">
+          <div className="section-head center">
+            <p className="eyebrow" style={{ justifyContent: 'center' }}>Slow days</p>
+            <h2 className="text-3xl">Experiences at Aranya</h2>
+          </div>
+          {EXPERIENCES.map((exp) => (
+            <article className="experience" key={exp.title}>
+              <div className="experience-media">
+                <img src={exp.image} alt={exp.alt} loading="lazy" />
+              </div>
+              <div className="experience-copy">
+                <p className="eyebrow">{exp.eyebrow}</p>
+                <h3 className="text-2xl">{exp.title}</h3>
+                <p>{exp.text}</p>
+                <Link to="/rooms" className="btn btn-outline">Plan your stay <HiArrowRight size={16} /></Link>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
