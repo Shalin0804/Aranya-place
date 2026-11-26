@@ -17,33 +17,25 @@ import {
  */
 export const createBooking = asyncHandler(async (req, res) => {
   const {
-    roomTypeId, checkIn, checkOut, numRooms, adults, children,
-    guestName, guestEmail, guestPhone, guestCountry, specialRequests, offerId,
+    roomTypeId, checkIn, checkOut, numRooms, adults, children, specialRequests, offerId,
   } = req.body;
 
   if (!roomTypeId) throw new ApiError(400, 'Please select a room type.');
-  if (!guestName || !guestEmail || !guestPhone) {
-    throw new ApiError(400, 'Guest name, email, and phone are required.');
-  }
-  if (typeof guestName !== 'string' || guestName.trim().length < 2 || guestName.length > 150) {
-    throw new ApiError(400, 'Please enter your full name.');
-  }
-  if (typeof guestEmail !== 'string' || guestEmail.length > 190 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) {
-    throw new ApiError(400, 'Please enter a valid email address.');
-  }
-  if (typeof guestPhone !== 'string' || !/^\+?[\d\s()-]{7,20}$/.test(guestPhone.trim())) {
-    throw new ApiError(400, 'Please enter a valid phone number.');
-  }
-  if (guestCountry != null && (typeof guestCountry !== 'string' || guestCountry.length > 80)) {
-    throw new ApiError(400, 'Please enter a valid country.');
-  }
   if (specialRequests != null && (typeof specialRequests !== 'string' || specialRequests.length > 1000)) {
     throw new ApiError(400, 'Special requests must be under 1000 characters.');
   }
-  // Every booking belongs to a signed-in, active customer account.
-  const [[account]] = await pool.query('SELECT id, status FROM customers WHERE id = ?', [req.customer.id]);
+
+  // Every booking belongs to a signed-in, active customer. Contact details
+  // come from the account record, never from the request body.
+  const [[account]] = await pool.query(
+    'SELECT id, name, email, phone, status FROM customers WHERE id = ?',
+    [req.customer.id]
+  );
   if (!account || account.status !== 'Active') {
     throw new ApiError(401, 'Please sign in with an active account to book.');
+  }
+  if (!account.phone?.trim()) {
+    throw new ApiError(400, 'Please add a mobile number to your profile before booking.');
   }
 
   const rooms = Number(numRooms) || 1;
@@ -108,14 +100,13 @@ export const createBooking = asyncHandler(async (req, res) => {
 
     const [result] = await conn.query(
       `INSERT INTO bookings
-        (booking_ref, customer_id, guest_name, guest_email, guest_phone, guest_country, room_type_id,
+        (booking_ref, customer_id, guest_name, guest_email, guest_phone, room_type_id,
          check_in, check_out, nights, num_rooms, adults, children, special_requests,
          room_price, subtotal, tax_amount, discount_amount, total_amount, offer_id,
          status, payment_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed', 'Pending')`,
       [
-        bookingRef, account.id, guestName.trim(), guestEmail.trim().toLowerCase(), guestPhone.trim(),
-        guestCountry?.trim() || null,
+        bookingRef, account.id, account.name, account.email, account.phone.trim(),
         roomTypeId, checkIn, checkOut, nights, rooms, Number(adults) || 1, Number(children) || 0,
         specialRequests || null, roomPrice, subtotal, taxAmount, discountAmount, totalAmount, appliedOfferId,
       ]

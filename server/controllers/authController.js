@@ -60,10 +60,15 @@ export const getProfile = asyncHandler(async (req, res) => {
 export const updateProfile = asyncHandler(async (req, res) => {
   const { name, phone, profile_image } = req.body;
   if (!name || !name.trim()) throw new ApiError(400, 'Name cannot be empty.');
+  // The profile phone is copied onto every booking, so validate it here.
+  if (phone && !/^\+?[\d\s()-]{7,20}$/.test(String(phone).trim())) {
+    throw new ApiError(400, 'Please enter a valid mobile number.');
+  }
 
+  // profile_image is only changed when the client sends it.
   await pool.query(
-    'UPDATE customers SET name = ?, phone = ?, profile_image = ? WHERE id = ?',
-    [name.trim(), phone || null, profile_image || null, req.customer.id]
+    'UPDATE customers SET name = ?, phone = ?, profile_image = COALESCE(?, profile_image) WHERE id = ?',
+    [name.trim(), phone ? String(phone).trim() : null, profile_image || null, req.customer.id]
   );
 
   const [[customer]] = await pool.query(`SELECT ${PUBLIC_FIELDS} FROM customers WHERE id = ?`, [req.customer.id]);

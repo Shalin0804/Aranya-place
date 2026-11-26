@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { HiOutlineCalendar, HiOutlineUserGroup, HiOutlineHome } from 'react-icons/hi';
-import { roomTypesApi, bookingsApi, settingsApi } from '../services/api';
+import { roomTypesApi, bookingsApi, settingsApi, authApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate, nightsBetween } from '../utils/format';
@@ -10,7 +10,7 @@ import './Booking.css';
 export default function Booking() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { customer } = useAuth();
+  const { customer, refreshProfile } = useAuth();
   const { showToast } = useToast();
 
   const roomTypeId = Number(searchParams.get('roomTypeId'));
@@ -27,10 +27,7 @@ export default function Booking() {
   const [taxRate, setTaxRate] = useState(12);
 
   const [form, setForm] = useState({
-    guestName: customer?.name || '',
-    guestEmail: customer?.email || '',
-    guestPhone: customer?.phone || '',
-    guestCountry: 'India',
+    phone: '',
     adults: Math.min(guestsParam, 99),
     children: Math.min(childrenParam, 4),
     specialRequests: '',
@@ -50,12 +47,6 @@ export default function Booking() {
   useEffect(() => {
     settingsApi.get().then((s) => s?.tax_percentage != null && setTaxRate(Number(s.tax_percentage))).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (customer) {
-      setForm((f) => ({ ...f, guestName: customer.name, guestEmail: customer.email, guestPhone: customer.phone || f.guestPhone }));
-    }
-  }, [customer]);
 
   if (!roomTypeId || !checkIn || !checkOut) {
     return (
@@ -91,22 +82,24 @@ export default function Booking() {
     e.preventDefault();
     setFormError('');
 
-    if (!form.guestName.trim() || !form.guestEmail.trim() || !form.guestPhone.trim()) {
-      setFormError('Please fill in your name, email, and phone number.');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.guestEmail)) {
-      setFormError('Please enter a valid email address.');
+    const needsPhone = !customer.phone;
+    if (needsPhone && !/^\+?[\d\s()-]{7,20}$/.test(form.phone.trim())) {
+      setFormError('Please enter a valid mobile number.');
       return;
     }
 
     setSubmitting(true);
     try {
+      // Name, email and mobile come from the account on the server; a
+      // missing mobile number is saved to the profile first.
+      if (needsPhone) {
+        await authApi.updateProfile({ name: customer.name, phone: form.phone.trim() });
+        await refreshProfile();
+      }
       const booking = await bookingsApi.create({
         roomTypeId, checkIn, checkOut, numRooms,
         adults: Number(form.adults), children: Number(form.children),
-        guestName: form.guestName.trim(), guestEmail: form.guestEmail.trim(),
-        guestPhone: form.guestPhone.trim(), guestCountry: form.guestCountry.trim() || undefined, specialRequests: form.specialRequests.trim() || undefined,
+        specialRequests: form.specialRequests.trim() || undefined,
       });
       showToast('Booking confirmed!');
       navigate(`/booking-confirmation/${booking.booking_ref}`);
@@ -129,30 +122,30 @@ export default function Booking() {
 
       <div className="container booking-grid">
         <form className="booking-form" onSubmit={handleSubmit}>
-          <h3>Guest Details</h3>
+          <h3>Booking Details</h3>
 
-          <div className="booking-field-row">
-            <label className="booking-field">
-              <span>Full name *</span>
-              <input value={form.guestName} onChange={handleChange('guestName')} required />
-            </label>
-            <label className="booking-field">
-              <span>Email *</span>
-              <input type="email" value={form.guestEmail} onChange={handleChange('guestEmail')} required />
-            </label>
-          </div>
+          <section className="booking-customer" aria-label="Your details">
+            <div className="booking-customer-head">
+              <span>Booking for</span>
+              <Link to="/account">Edit profile</Link>
+            </div>
+            <dl>
+              <div><dt>Full name</dt><dd>{customer.name}</dd></div>
+              <div><dt>Email address</dt><dd>{customer.email}</dd></div>
+              <div>
+                <dt>Mobile number</dt>
+                <dd>{customer.phone || <span className="booking-customer-missing">Not added yet</span>}</dd>
+              </div>
+            </dl>
+            {!customer.phone && (
+              <label className="booking-field booking-customer-phone">
+                <span>Add your mobile number *</span>
+                <input type="tel" autoComplete="tel" required value={form.phone} onChange={handleChange('phone')} placeholder="+91 98765 43210" />
+              </label>
+            )}
+          </section>
 
-          <div className="booking-field-row">
-            <label className="booking-field">
-              <span>Mobile number *</span>
-              <input type="tel" autoComplete="tel" value={form.guestPhone} onChange={handleChange('guestPhone')} required />
-            </label>
-            <label className="booking-field">
-              <span>Country *</span>
-              <input autoComplete="country-name" value={form.guestCountry} onChange={handleChange('guestCountry')} required maxLength={80} />
-            </label>
-          </div>
-
+          <h4 className="booking-subhead">Your stay</h4>
           <div className="booking-field-row">
             <div className="booking-field-row" style={{ flex: 1 }}>
               <label className="booking-field">
